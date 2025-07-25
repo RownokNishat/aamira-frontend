@@ -178,6 +178,8 @@ const PackageCreator = () => {
                     <option value="IN_TRANSIT">IN_TRANSIT</option>
                     <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY</option>
                     <option value="DELIVERED">DELIVERED</option>
+                    <option value="EXCEPTION">EXCEPTION</option>
+                    <option value="CANCELLED">CANCELLED</option>
                 </select>
                 <div style={{display: 'flex', gap: '1rem'}}>
                     <input name="lat" value={formData.lat} onChange={handleChange} type="number" step="any" placeholder="Latitude" className="form-input" />
@@ -213,6 +215,11 @@ const TimelineModal = ({ history, onClose }) => {
                             <div className="timeline-dot"></div>
                             <p style={{fontWeight: '600', color: '#1F2937'}}>{event.status}</p>
                             <p style={{fontSize: '0.875rem', color: '#6B7280'}}>{new Date(event.event_timestamp).toLocaleString()}</p>
+                            {event.lat && event.lon && (
+                                <div style={{fontSize: '0.875rem', color: '#4B5563', marginTop: '0.25rem'}}>
+                                    <LocationDisplay lat={event.lat} lon={event.lon} />
+                                </div>
+                            )}
                             {event.note && <p style={{fontSize: '0.875rem', color: '#4B5563', marginTop: '0.25rem'}}>Note: {event.note}</p>}
                         </div>
                     ))}
