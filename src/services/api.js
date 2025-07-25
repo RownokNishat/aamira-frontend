@@ -1,5 +1,5 @@
 const API_URL =
-  import.meta.env.VITE_APP_API_URL || "http://localhost:3001/api";
+  `${import.meta.env.VITE_APP_API_URL}/api` || "http://localhost:3001/api";
 const API_KEY = import.meta.env.VITE_APP_API_SECRET_KEY || "default-secret";
 
 const getHeaders = () => ({
