@@ -3,7 +3,7 @@
 This project is a full-stack solution for the Aamira Courier Package Tracker coding challenge. It features a real-time dashboard for dispatchers to monitor active packages, ingest updates from couriers, and receive alerts for stuck packages.
 
 **Live Demo:** https://aamira-frontend.vercel.app/
-**Backend Repository:** https://github.com/RownokNishat/aamira-courier-backend 
+**Backend Repository:** https://github.com/RownokNishat/aamira-courier-backend
 **Frontend Repository:** https://github.com/RownokNishat/aamira-frontend
 
 ---
@@ -61,8 +61,8 @@ This project is a full-stack solution for the Aamira Courier Package Tracker cod
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/RownokNishat/aamira-courier-backend
-    cd aamira-server
+    git clone [https://github.com/RownokNishat/aamira-courier-backend](https://github.com/RownokNishat/aamira-courier-backend)
+    cd aamira-courier-backend
     ```
 2.  **Create an environment file:**
     Create a `.env` file in the root of the backend directory and add the following content:
@@ -92,8 +92,8 @@ This project is a full-stack solution for the Aamira Courier Package Tracker cod
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/RownokNishat/aamira-frontend
-    cd aamira-client
+    git clone [https://github.com/RownokNishat/aamira-frontend](https://github.com/RownokNishat/aamira-frontend)
+    cd aamira-frontend
     ```
 2.  **Install dependencies:**
     ```bash
@@ -124,11 +124,13 @@ The application is built with a standard client-server architecture. The backend
 - **Jobs:** A `node-cron` job runs in the background for periodic tasks (detecting stuck packages).
 - **Real-time Layer:** Socket.IO is integrated into the Express server to push updates to clients, avoiding the need for inefficient HTTP polling.
 
-## Assumptions & Trade-offs
+## Assumptions, Trade-offs, and Limitations
 
+- **Alert Spam Prevention:** The system implements the **"alert once until state changes"** strategy. An alert is generated for a stuck package only if one does not already exist. The alert is cleared once the package receives any new status update. This prevents spamming dispatchers with repeated notifications for the same issue.
 - **ETA Calculation:** The system accepts a manually provided ETA. A production system would likely involve a more complex calculation based on historical data, traffic, and routing, which was deemed out of scope for this challenge.
-- **Authentication vs. Authorization:** The system uses a simple, shared API secret key for server-to-server authorization, which is sufficient for an internal tool. A full user authentication/authorization system (e.g., JWT with user roles) was not implemented as per the requirements.
+- **Authentication vs. Authorization:** The system uses a simple, shared API secret key for server-to-server authorization. This is sufficient for an internal tool but does not provide user-level authentication or role-based access control.
 - **Geocoding API:** The frontend uses the free Nominatim (OpenStreetMap) API for reverse geocoding. This API has a strict usage policy (1 request/second) and is suitable for a demo but would be replaced with a paid, high-volume service in a production environment.
+- **No In-Memory Caching:** The system queries the database directly for all data. For improved performance, an in-memory caching layer (like Redis) could be added to cache frequently accessed data, such as active package lists.
 
 ## Idempotency and Out-of-Order Events
 
@@ -156,7 +158,12 @@ When an event is received, the system checks if its timestamp is newer than the 
 
 ## Future Improvements ("What I'd Do Next")
 
-- **Message Queue:** For massive scale, I would introduce a message queue (like RabbitMQ or AWS SQS) to ingest courier updates. This would decouple the API from the processing logic, improving reliability and handling traffic spikes more effectively.
-- **Delayed Queue for Alerts:** To make the stuck-package detection more efficient at scale, I would replace the cron job with a delayed message queue. This would eliminate the need to scan the database periodically.
-- **Integration & Unit Tests:** Implement a robust testing suite with Jest and Supertest to ensure code quality and prevent regressions.
-- **CI/CD Pipeline:** Set up a CI/CD pipeline using GitHub Actions to automate testing and deployment.
+- **Message Queue for Ingestion:** For massive scale, I would introduce a message queue (like RabbitMQ or AWS SQS) to ingest courier updates. This would decouple the API from the processing logic, improving reliability and handling traffic spikes more effectively by allowing the system to process events at a steady pace.
+- **Delayed Queue for Alerts:** To make the stuck-package detection more efficient and scalable, I would replace the `node-cron` job with a delayed message queue. When a package is updated, a delayed message would be scheduled for 30 minutes later. If a new update arrives before then, the old message is cancelled and a new one is scheduled. This event-driven approach completely eliminates the need to scan the database periodically.
+- **Robust Testing Suite:** Implement a comprehensive testing strategy, including:
+    - **Unit Tests** (Jest) for individual functions and services.
+    - **Integration Tests** (Supertest) for API endpoints to validate the entire request/response flow.
+    - **End-to-End Tests** (Cypress or Playwright) to simulate user interactions on the frontend.
+- **CI/CD Pipeline:** Set up a CI/CD pipeline using GitHub Actions to automate the testing and deployment process. This would ensure that every push to the `main` branch is automatically tested and, if successful, deployed to production, improving development velocity and reliability.
+- **Monitoring and Logging:** Integrate a dedicated logging service (like Winston or Pino) for structured logging. Add a monitoring and alerting platform (like Prometheus/Grafana or Datadog) to track application performance, error rates, and system health in real-time.
+- **Configuration Management:** Externalize all configuration (ports, database URIs, API keys, feature flags) from environment variables into a dedicated configuration management service (like AWS Parameter Store or HashiCorp Vault) for better security and management in production environments.
