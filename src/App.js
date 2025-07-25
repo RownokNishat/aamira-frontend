@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import io from 'socket.io-client';
 
 // --- Configuration ---
@@ -31,6 +31,7 @@ const styles = `
     .flex-center { display: flex; align-items: center; }
     .space-y-4 > * + * { margin-top: 1rem; }
     .alert-banner { border-left-width: 4px; border-color: #EF4444; background-color: #FEE2E2; color: #B91C1C; padding: 1rem; margin-bottom: 1rem; border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem; }
+    .error-banner { border-left-width: 4px; border-color: #FBBF24; background-color: #FFFBEB; color: #92400E; padding: 1rem; margin-bottom: 1rem; border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem; }
     .alert-title { font-weight: 700; }
     .table-container { overflow-x: auto; }
     .table { min-width: 100%; border-collapse: collapse; }
@@ -53,6 +54,7 @@ const styles = `
     .timeline-item { position: relative; margin-bottom: 1.5rem; }
     .timeline-dot { position: absolute; left: -2.05rem; top: 0.25rem; height: 0.75rem; width: 0.75rem; background-color: #9CA3AF; border-radius: 9999px; }
     .timeline-item:first-child .timeline-dot { background-color: #3B82F6; }
+    .filter-controls { display: flex; gap: 1rem; margin-bottom: 1rem; }
 `;
 
 // --- Helper Components ---
@@ -72,13 +74,10 @@ const LocationDisplay = ({ lat, lon }) => {
         if (lat && lon) {
             setIsLoading(true);
             setPlaceName(''); // Reset on new coords
-            // Using OpenStreetMap's free Nominatim API.
-            // Be mindful of their usage policy (max 1 request/sec).
             fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data && data.display_name) {
-                        // Take the first 3 parts of the address for brevity
                         const shortName = data.display_name.split(',').slice(0, 3).join(',');
                         setPlaceName(shortName);
                     } else {
@@ -95,7 +94,6 @@ const LocationDisplay = ({ lat, lon }) => {
 
     if (!lat || !lon) return 'N/A';
     if (isLoading) return 'Loading location...';
-    // Fallback to coordinates if placeName is empty or there was an error
     return placeName || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
 };
 
@@ -181,7 +179,7 @@ const PackageCreator = () => {
                     <option value="EXCEPTION">EXCEPTION</option>
                     <option value="CANCELLED">CANCELLED</option>
                 </select>
-                <div style={{display: 'flex', gap: '1rem'}}>
+                <div style={{ display: 'flex', gap: '1rem' }}>
                     <input name="lat" value={formData.lat} onChange={handleChange} type="number" step="any" placeholder="Latitude" className="form-input" />
                     <input name="lon" value={formData.lon} onChange={handleChange} type="number" step="any" placeholder="Longitude" className="form-input" />
                 </div>
@@ -193,7 +191,7 @@ const PackageCreator = () => {
                     <label htmlFor="stuck-test" className="form-label">Send as Stuck Package (Timestamp {'>'} 30 min ago)</label>
                 </div>
                 <button type="submit" disabled={isLoading} className="form-submit-btn">{isLoading ? 'Sending...' : 'Send Package Update'}</button>
-                {responseMessage && <p style={{fontSize: '0.875rem', textAlign: 'center', marginTop: '0.5rem'}}>{responseMessage}</p>}
+                {responseMessage && <p style={{ fontSize: '0.875rem', textAlign: 'center', marginTop: '0.5rem' }}>{responseMessage}</p>}
             </form>
         </div>
     );
@@ -213,14 +211,14 @@ const TimelineModal = ({ history, onClose }) => {
                     {history.map(event => (
                         <div key={event._id} className="timeline-item">
                             <div className="timeline-dot"></div>
-                            <p style={{fontWeight: '600', color: '#1F2937'}}>{event.status}</p>
-                            <p style={{fontSize: '0.875rem', color: '#6B7280'}}>{new Date(event.event_timestamp).toLocaleString()}</p>
+                            <p style={{ fontWeight: '600', color: '#1F2937' }}>{event.status}</p>
+                            <p style={{ fontSize: '0.875rem', color: '#6B7280' }}>{new Date(event.event_timestamp).toLocaleString()}</p>
                             {event.lat && event.lon && (
-                                <div style={{fontSize: '0.875rem', color: '#4B5563', marginTop: '0.25rem'}}>
+                                <div style={{ fontSize: '0.875rem', color: '#4B5563', marginTop: '0.25rem' }}>
                                     <LocationDisplay lat={event.lat} lon={event.lon} />
                                 </div>
                             )}
-                            {event.note && <p style={{fontSize: '0.875rem', color: '#4B5563', marginTop: '0.25rem'}}>Note: {event.note}</p>}
+                            {event.note && <p style={{ fontSize: '0.875rem', color: '#4B5563', marginTop: '0.25rem' }}>Note: {event.note}</p>}
                         </div>
                     ))}
                 </div>
@@ -234,10 +232,15 @@ export default function App() {
     const [packages, setPackages] = useState([]);
     const [alerts, setAlerts] = useState([]);
     const [selectedPackageHistory, setSelectedPackageHistory] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('ALL_ACTIVE');
+    const [connectionError, setConnectionError] = useState(null);
     const API_URL = 'http://localhost:3001';
     const API_KEY = '1234567890abcdef1234567890abcdef';
 
     const fetchInitialData = useCallback(async () => {
+        // Clear previous errors on a new attempt
+        setConnectionError(null);
         try {
             const [pkgResponse, alertResponse] = await Promise.all([
                 fetch(`${API_URL}/api/packages/active`, { headers: { 'Authorization': `Bearer ${API_KEY}` } }),
@@ -247,6 +250,8 @@ export default function App() {
             if (alertResponse.ok) setAlerts(await alertResponse.json());
         } catch (error) {
             console.error("Failed to fetch initial data:", error);
+            // Set a user-friendly error message
+            setConnectionError("Could not connect to the backend server. Please ensure it's running and accessible at http://localhost:3001.");
         }
     }, [API_URL, API_KEY]);
 
@@ -281,6 +286,17 @@ export default function App() {
         };
     }, [fetchInitialData]);
 
+    const filteredPackages = useMemo(() => {
+        return packages
+            .filter(pkg => {
+                if (statusFilter === 'ALL_ACTIVE') return true;
+                return pkg.status === statusFilter;
+            })
+            .filter(pkg => {
+                return pkg.package_id.toLowerCase().includes(searchQuery.toLowerCase());
+            });
+    }, [packages, statusFilter, searchQuery]);
+
     const stuckPackageIds = new Set(alerts.map(a => a.package_id));
 
     return (
@@ -296,7 +312,42 @@ export default function App() {
                         <div className="grid-col-2">
                             <div className="card">
                                 <h2 className="card-title">Live Package Feed</h2>
-                                <div style={{marginBottom: '1rem'}}>{alerts.map(alert => <AlertBanner key={alert._id} alert={alert} />)}</div>
+
+                                {/* Connection Error Display */}
+                                {connectionError && (
+                                    <div className="error-banner">
+                                        <p className="alert-title">Connection Error</p>
+                                        <p>{connectionError}</p>
+                                    </div>
+                                )}
+
+                                {/* Search and Filter Controls */}
+                                <div className="filter-controls">
+                                    <input
+                                        type="text"
+                                        placeholder="Search by Package ID..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="form-input"
+                                        style={{ flex: 2 }}
+                                    />
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) => setStatusFilter(e.target.value)}
+                                        className="form-select"
+                                        style={{ flex: 1 }}
+                                    >
+                                        <option value="ALL_ACTIVE">All Active</option>
+                                        <option value="CREATED">Created</option>
+                                        <option value="PICKED_UP">Picked Up</option>
+                                        <option value="IN_TRANSIT">In Transit</option>
+                                        <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+                                        <option value="DELIVERED">Delivered</option>
+                                        <option value="CANCELLED">Cancelled</option>
+                                    </select>
+                                </div>
+
+                                <div style={{ marginBottom: '1rem' }}>{alerts.map(alert => <AlertBanner key={alert._id} alert={alert} />)}</div>
                                 <div className="table-container">
                                     <table className="table">
                                         <thead className="table-head">
@@ -310,10 +361,12 @@ export default function App() {
                                             </tr>
                                         </thead>
                                         <tbody className="tbody">
-                                            {packages.length > 0 ? (
-                                                packages.map(pkg => <PackageRow key={pkg._id} pkg={pkg} isStuck={stuckPackageIds.has(pkg.package_id)} onClick={() => handleRowClick(pkg.package_id)} />)
+                                            {filteredPackages.length > 0 ? (
+                                                filteredPackages.map(pkg => <PackageRow key={pkg._id} pkg={pkg} isStuck={stuckPackageIds.has(pkg.package_id)} onClick={() => handleRowClick(pkg.package_id)} />)
                                             ) : (
-                                                <tr><td colSpan="6" style={{textAlign: 'center', padding: '2rem', color: '#6B7280'}}>No active packages. Send an update to see it here.</td></tr>
+                                                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#6B7280' }}>
+                                                    {connectionError ? ' ' : 'No matching packages found.'}
+                                                </td></tr>
                                             )}
                                         </tbody>
                                     </table>
