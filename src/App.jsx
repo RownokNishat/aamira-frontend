@@ -17,8 +17,12 @@ function App() {
 
   const filteredPackages = useMemo(() => {
     return packages
-      .filter((pkg) => statusFilter === "ALL_ACTIVE" || pkg.status === statusFilter)
-      .filter((pkg) => pkg.package_id.toLowerCase().includes(searchQuery.toLowerCase()));
+      .filter(
+        (pkg) => statusFilter === "ALL_ACTIVE" || pkg.status === statusFilter
+      )
+      .filter((pkg) =>
+        pkg.package_id.toLowerCase().includes(searchQuery.toLowerCase())
+      );
   }, [packages, statusFilter, searchQuery]);
 
   const handleRowClick = async (packageId) => {
@@ -45,14 +49,13 @@ function App() {
 
           {/* ## MODIFICATION: Switched to CSS Grid for a responsive layout ## */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
             {/* ## MODIFICATION: This column now spans 1/3 of the grid on large screens ## */}
             <div className="lg:col-span-1">
               <PackageCreator />
             </div>
 
             {/* ## MODIFICATION: This column now spans 2/3 of the grid on large screens ## */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 h-[80vh]">
               <div className="bg-white p-8 rounded-xl shadow-lg h-full">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
                   Live Package Feed

@@ -81,7 +81,7 @@ export const PackageCreator = () => {
       <h2 className="text-2xl font-bold text-gray-900 mb-4">
         Package Control Panel
       </h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
         <Input
           name="package_id"
           value={formData.package_id}

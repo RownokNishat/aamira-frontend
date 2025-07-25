@@ -39,7 +39,7 @@ export const PackageTable = ({
   const stuckPackageIds = new Set(alerts.map((a) => a.package_id));
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto h-[50vh]">
       <table className="min-w-full border-collapse">
         <thead className="bg-gray-50">
           <tr>
