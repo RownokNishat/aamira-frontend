@@ -5,6 +5,7 @@ import { PackageTable } from "./components/PackageTable";
 import { TimelineModal } from "./components/TimelineModal";
 import { AlertBanner } from "./components/AlertBanner";
 import * as api from "./services/api";
+import { AlertsPopover } from "./components/AlertsPopover";
 
 function App() {
   const { packages, alerts, connectionError } = usePackages();
@@ -37,10 +38,11 @@ function App() {
     <>
       <div className="bg-gray-100 min-h-screen font-sans">
         <div className="container mx-auto p-6">
-          <header className="mb-8">
+          <header className="mb-8 flex justify-between items-center">
             <h1 className="text-4xl font-bold text-gray-900">
-              Aamira Courier Real-time Dashboard
+              Aamira Courier Dashboard
             </h1>
+            <AlertsPopover alerts={alerts} />
           </header>
           <div className="flex flex-col lg:flex-row lg:flex-wrap gap-8">
             <div className="lg:flex-[1_1_400px]">
