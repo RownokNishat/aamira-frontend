@@ -37,11 +37,22 @@ const styles = `
     .table-head { background-color: #F9FAFB; }
     .th { padding: 0.75rem 1.5rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; }
     .tbody { background-color: #ffffff; }
+    .tr-clickable { cursor: pointer; }
+    .tr-clickable:hover { background-color: #F9FAFB; }
     .tr-stuck { background-color: #FEF2F2; }
     .td { padding: 1rem 1.5rem; white-space: nowrap; font-size: 0.875rem; color: #6B7280; border-top: 1px solid #E5E7EB; }
     .td-main { color: #111827; font-weight: 500; }
     .max-w-xs { max-width: 20rem; }
     .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
+    .modal-content { background-color: white; padding: 2rem; border-radius: 1rem; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .modal-title { font-size: 1.5rem; font-weight: 700; }
+    .modal-close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #9CA3AF; }
+    .timeline { border-left: 2px solid #E5E7EB; padding-left: 1.5rem; }
+    .timeline-item { position: relative; margin-bottom: 1.5rem; }
+    .timeline-dot { position: absolute; left: -2.05rem; top: 0.25rem; height: 0.75rem; width: 0.75rem; background-color: #9CA3AF; border-radius: 9999px; }
+    .timeline-item:first-child .timeline-dot { background-color: #3B82F6; }
 `;
 
 // --- Helper Components ---
@@ -52,12 +63,18 @@ const AlertBanner = ({ alert }) => (
     </div>
 );
 
-const PackageRow = ({ pkg, isStuck }) => {
+const PackageRow = ({ pkg, isStuck, onClick }) => {
     const lastSeen = new Date(pkg.received_at).toLocaleTimeString();
+    let rowClass = "tr-clickable";
+    if (isStuck) {
+        rowClass += " tr-stuck";
+    }
+
     return (
-        <tr className={isStuck ? "tr-stuck" : ""}>
+        <tr className={rowClass} onClick={onClick}>
             <td className="td td-main">{pkg.package_id}</td>
             <td className="td">{pkg.status}</td>
+            <td className="td">{pkg.eta ? new Date(pkg.eta).toLocaleString() : 'N/A'}</td>
             <td className="td">{lastSeen}</td>
             <td className="td">{pkg.lat && pkg.lon ? `${pkg.lat.toFixed(4)}, ${pkg.lon.toFixed(4)}` : 'N/A'}</td>
             <td className="td max-w-xs truncate">{pkg.note || 'N/A'}</td>
@@ -67,7 +84,7 @@ const PackageRow = ({ pkg, isStuck }) => {
 
 // Form to create/update packages
 const PackageCreator = () => {
-    const [formData, setFormData] = useState({ package_id: '', status: 'CREATED', lat: '', lon: '', note: '' });
+    const [formData, setFormData] = useState({ package_id: '', status: 'CREATED', lat: '', lon: '', note: '', eta: '' });
     const [isStuckTest, setIsStuckTest] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [responseMessage, setResponseMessage] = useState('');
@@ -83,17 +100,10 @@ const PackageCreator = () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    setFormData(prev => ({
-                        ...prev,
-                        lat: position.coords.latitude.toFixed(6),
-                        lon: position.coords.longitude.toFixed(6)
-                    }));
+                    setFormData(prev => ({ ...prev, lat: position.coords.latitude.toFixed(6), lon: position.coords.longitude.toFixed(6) }));
                     setResponseMessage('Location captured successfully!');
                 },
-                (error) => {
-                    setResponseMessage(`Error: ${error.message}`);
-                    console.error("Geolocation error:", error);
-                }
+                (error) => { setResponseMessage(`Error: ${error.message}`); }
             );
         } else {
             setResponseMessage("Error: Geolocation is not supported by this browser.");
@@ -105,7 +115,7 @@ const PackageCreator = () => {
         setIsLoading(true);
         setResponseMessage('');
         let eventTimestamp = isStuckTest ? new Date(Date.now() - 45 * 60 * 1000).toISOString() : new Date().toISOString();
-        const payload = { ...formData, lat: formData.lat ? parseFloat(formData.lat) : undefined, lon: formData.lon ? parseFloat(formData.lon) : undefined, event_timestamp: eventTimestamp };
+        const payload = { ...formData, lat: formData.lat ? parseFloat(formData.lat) : undefined, lon: formData.lon ? parseFloat(formData.lon) : undefined, event_timestamp: eventTimestamp, eta: formData.eta || undefined };
         Object.keys(payload).forEach(key => (payload[key] === undefined || payload[key] === '') && delete payload[key]);
 
         try {
@@ -137,6 +147,7 @@ const PackageCreator = () => {
                     <input name="lon" value={formData.lon} onChange={handleChange} type="number" step="any" placeholder="Longitude" className="form-input" />
                 </div>
                 <button type="button" onClick={handleGetLocation} className="location-btn">Get Current Location</button>
+                <input name="eta" value={formData.eta} onChange={handleChange} type="datetime-local" placeholder="ETA (Optional)" className="form-input" />
                 <textarea name="note" value={formData.note} onChange={handleChange} placeholder="Note (optional)" className="form-textarea" />
                 <div className="flex-center">
                     <input id="stuck-test" type="checkbox" checked={isStuckTest} onChange={(e) => setIsStuckTest(e.target.checked)} className="form-checkbox" />
@@ -149,10 +160,36 @@ const PackageCreator = () => {
     );
 };
 
+// Timeline Modal Component
+const TimelineModal = ({ history, onClose }) => {
+    if (!history) return null;
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h3 className="modal-title">Package History: {history[0]?.package_id}</h3>
+                    <button onClick={onClose} className="modal-close-btn">&times;</button>
+                </div>
+                <div className="timeline">
+                    {history.map(event => (
+                        <div key={event._id} className="timeline-item">
+                            <div className="timeline-dot"></div>
+                            <p style={{fontWeight: '600', color: '#1F2937'}}>{event.status}</p>
+                            <p style={{fontSize: '0.875rem', color: '#6B7280'}}>{new Date(event.event_timestamp).toLocaleString()}</p>
+                            {event.note && <p style={{fontSize: '0.875rem', color: '#4B5563', marginTop: '0.25rem'}}>Note: {event.note}</p>}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // Main App Component
 export default function App() {
     const [packages, setPackages] = useState([]);
     const [alerts, setAlerts] = useState([]);
+    const [selectedPackageHistory, setSelectedPackageHistory] = useState(null);
     const API_URL = 'http://localhost:3001';
     const API_KEY = '1234567890abcdef1234567890abcdef';
 
@@ -168,6 +205,18 @@ export default function App() {
             console.error("Failed to fetch initial data:", error);
         }
     }, [API_URL, API_KEY]);
+
+    const handleRowClick = async (packageId) => {
+        try {
+            const response = await fetch(`${API_URL}/api/packages/${packageId}`, { headers: { 'Authorization': `Bearer ${API_KEY}` } });
+            if (response.ok) {
+                const historyData = await response.json();
+                setSelectedPackageHistory(historyData);
+            }
+        } catch (error) {
+            console.error("Failed to fetch package history:", error);
+        }
+    };
 
     useEffect(() => {
         fetchInitialData();
@@ -210,6 +259,7 @@ export default function App() {
                                             <tr>
                                                 <th className="th">Package ID</th>
                                                 <th className="th">Status</th>
+                                                <th className="th">ETA</th>
                                                 <th className="th">Last Seen</th>
                                                 <th className="th">Location</th>
                                                 <th className="th">Note</th>
@@ -217,9 +267,9 @@ export default function App() {
                                         </thead>
                                         <tbody className="tbody">
                                             {packages.length > 0 ? (
-                                                packages.map(pkg => <PackageRow key={pkg._id} pkg={pkg} isStuck={stuckPackageIds.has(pkg.package_id)} />)
+                                                packages.map(pkg => <PackageRow key={pkg._id} pkg={pkg} isStuck={stuckPackageIds.has(pkg.package_id)} onClick={() => handleRowClick(pkg.package_id)} />)
                                             ) : (
-                                                <tr><td colSpan="5" style={{textAlign: 'center', padding: '2rem', color: '#6B7280'}}>No active packages. Send an update to see it here.</td></tr>
+                                                <tr><td colSpan="6" style={{textAlign: 'center', padding: '2rem', color: '#6B7280'}}>No active packages. Send an update to see it here.</td></tr>
                                             )}
                                         </tbody>
                                     </table>
@@ -229,6 +279,7 @@ export default function App() {
                     </div>
                 </div>
             </div>
+            <TimelineModal history={selectedPackageHistory} onClose={() => setSelectedPackageHistory(null)} />
         </>
     );
 }
