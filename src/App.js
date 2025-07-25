@@ -63,6 +63,43 @@ const AlertBanner = ({ alert }) => (
     </div>
 );
 
+// New component to fetch and display place name from coordinates
+const LocationDisplay = ({ lat, lon }) => {
+    const [placeName, setPlaceName] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (lat && lon) {
+            setIsLoading(true);
+            setPlaceName(''); // Reset on new coords
+            // Using OpenStreetMap's free Nominatim API.
+            // Be mindful of their usage policy (max 1 request/sec).
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.display_name) {
+                        // Take the first 3 parts of the address for brevity
+                        const shortName = data.display_name.split(',').slice(0, 3).join(',');
+                        setPlaceName(shortName);
+                    } else {
+                        setPlaceName('Location not found');
+                    }
+                    setIsLoading(false);
+                })
+                .catch(() => {
+                    setPlaceName('Could not fetch location');
+                    setIsLoading(false);
+                });
+        }
+    }, [lat, lon]);
+
+    if (!lat || !lon) return 'N/A';
+    if (isLoading) return 'Loading location...';
+    // Fallback to coordinates if placeName is empty or there was an error
+    return placeName || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+};
+
+
 const PackageRow = ({ pkg, isStuck, onClick }) => {
     const lastSeen = new Date(pkg.received_at).toLocaleTimeString();
     let rowClass = "tr-clickable";
@@ -76,7 +113,7 @@ const PackageRow = ({ pkg, isStuck, onClick }) => {
             <td className="td">{pkg.status}</td>
             <td className="td">{pkg.eta ? new Date(pkg.eta).toLocaleString() : 'N/A'}</td>
             <td className="td">{lastSeen}</td>
-            <td className="td">{pkg.lat && pkg.lon ? `${pkg.lat.toFixed(4)}, ${pkg.lon.toFixed(4)}` : 'N/A'}</td>
+            <td className="td"><LocationDisplay lat={pkg.lat} lon={pkg.lon} /></td>
             <td className="td max-w-xs truncate">{pkg.note || 'N/A'}</td>
         </tr>
     );
@@ -261,7 +298,7 @@ export default function App() {
                                                 <th className="th">Status</th>
                                                 <th className="th">ETA</th>
                                                 <th className="th">Last Seen</th>
-                                                <th className="th">Location</th>
+                                                <th className="th">Place Name</th>
                                                 <th className="th">Note</th>
                                             </tr>
                                         </thead>
