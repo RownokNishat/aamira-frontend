@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import io from 'socket.io-client';
 
 // --- Configuration ---
+// In this specific environment, we initialize socket directly with the URL.
 const socket = io('http://localhost:3001');
 
 // --- CSS Styles ---
@@ -25,6 +26,8 @@ const styles = `
     .form-submit-btn { width: 100%; background-color: #2563EB; color: #ffffff; font-weight: 700; padding: 0.75rem 1rem; border-radius: 0.5rem; border: none; cursor: pointer; transition: background-color 0.2s; }
     .form-submit-btn:hover { background-color: #1D4ED8; }
     .form-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .location-btn { width: 100%; background-color: #10B981; color: #ffffff; font-weight: 500; padding: 0.6rem 1rem; border-radius: 0.5rem; border: none; cursor: pointer; transition: background-color 0.2s; text-align: center; }
+    .location-btn:hover { background-color: #059669; }
     .flex-center { display: flex; align-items: center; }
     .space-y-4 > * + * { margin-top: 1rem; }
     .alert-banner { border-left-width: 4px; border-color: #EF4444; background-color: #FEE2E2; color: #B91C1C; padding: 1rem; margin-bottom: 1rem; border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem; }
@@ -76,6 +79,27 @@ const PackageCreator = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleGetLocation = () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setFormData(prev => ({
+                        ...prev,
+                        lat: position.coords.latitude.toFixed(6),
+                        lon: position.coords.longitude.toFixed(6)
+                    }));
+                    setResponseMessage('Location captured successfully!');
+                },
+                (error) => {
+                    setResponseMessage(`Error: ${error.message}`);
+                    console.error("Geolocation error:", error);
+                }
+            );
+        } else {
+            setResponseMessage("Error: Geolocation is not supported by this browser.");
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
@@ -112,6 +136,7 @@ const PackageCreator = () => {
                     <input name="lat" value={formData.lat} onChange={handleChange} type="number" step="any" placeholder="Latitude" className="form-input" />
                     <input name="lon" value={formData.lon} onChange={handleChange} type="number" step="any" placeholder="Longitude" className="form-input" />
                 </div>
+                <button type="button" onClick={handleGetLocation} className="location-btn">Get Current Location</button>
                 <textarea name="note" value={formData.note} onChange={handleChange} placeholder="Note (optional)" className="form-textarea" />
                 <div className="flex-center">
                     <input id="stuck-test" type="checkbox" checked={isStuckTest} onChange={(e) => setIsStuckTest(e.target.checked)} className="form-checkbox" />
