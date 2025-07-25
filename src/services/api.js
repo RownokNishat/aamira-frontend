@@ -1,5 +1,6 @@
-const API_URL = "http://localhost:3001/api";
-const API_KEY = "1234567890abcdef1234567890abcdef";
+const API_URL =
+  import.meta.env.VITE_APP_API_URL || "http://localhost:3001/api";
+const API_KEY = import.meta.env.VITE_APP_API_SECRET_KEY || "default-secret";
 
 const getHeaders = () => ({
   "Content-Type": "application/json",
