@@ -163,7 +163,6 @@ When an event is received, the system checks if its timestamp is newer than the 
 - **Robust Testing Suite:** Implement a comprehensive testing strategy, including:
     - **Unit Tests** (Jest) for individual functions and services.
     - **Integration Tests** (Supertest) for API endpoints to validate the entire request/response flow.
-    - **End-to-End Tests** (Cypress or Playwright) to simulate user interactions on the frontend.
 - **CI/CD Pipeline:** Set up a CI/CD pipeline using GitHub Actions to automate the testing and deployment process. This would ensure that every push to the `main` branch is automatically tested and, if successful, deployed to production, improving development velocity and reliability.
-- **Monitoring and Logging:** Integrate a dedicated logging service (like Winston or Pino) for structured logging. Add a monitoring and alerting platform (like Prometheus/Grafana or Datadog) to track application performance, error rates, and system health in real-time.
-- **Configuration Management:** Externalize all configuration (ports, database URIs, API keys, feature flags) from environment variables into a dedicated configuration management service (like AWS Parameter Store or HashiCorp Vault) for better security and management in production environments.
+- **Monitoring and Logging:** Integrate a dedicated logging service to track application performance, error rates, and system health in real-time.
+- **Configuration Management:** Externalize all configuration (ports, database URIs, API keys, feature flags) from environment variables into a dedicated configuration management service (like AWS Parameter Store) for better security and management in production environments.
