@@ -2,9 +2,9 @@
 
 This project is a full-stack solution for the Aamira Courier Package Tracker coding challenge. It features a real-time dashboard for dispatchers to monitor active packages, ingest updates from couriers, and receive alerts for stuck packages.
 
-**Live Demo:** [Link to your deployed frontend application]  
-**Backend Repository:** [Link to your public backend GitHub repository]  
-**Frontend Repository:** [Link to your public frontend GitHub repository]
+**Live Demo:** https://aamira-frontend.vercel.app/
+**Backend Repository:** https://github.com/RownokNishat/aamira-courier-backend 
+**Frontend Repository:** https://github.com/RownokNishat/aamira-frontend
 
 ---
 
@@ -61,7 +61,7 @@ This project is a full-stack solution for the Aamira Courier Package Tracker cod
 
 1.  **Clone the repository:**
     ```bash
-    git clone [your-backend-repo-url]
+    git clone https://github.com/RownokNishat/aamira-courier-backend
     cd aamira-server
     ```
 2.  **Create an environment file:**
@@ -92,7 +92,7 @@ This project is a full-stack solution for the Aamira Courier Package Tracker cod
 
 1.  **Clone the repository:**
     ```bash
-    git clone [your-frontend-repo-url]
+    git clone https://github.com/RownokNishat/aamira-frontend
     cd aamira-client
     ```
 2.  **Install dependencies:**
