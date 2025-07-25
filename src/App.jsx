@@ -2,66 +2,18 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import io from "socket.io-client";
 
 // --- Configuration ---
-// In this specific environment, we initialize socket directly with the URL.
+// Socket.io client initialization
 const socket = io("http://localhost:3001");
 
-// --- CSS Styles ---
-// All styles are defined here to avoid build process issues with Tailwind CSS.
-const styles = `
-    .font-sans { font-family: Inter, sans-serif; }
-    .bg-gray-100 { background-color: #F3F4F6; }
-    .min-h-screen { min-height: 100vh; }
-    .container { width: 100%; max-width: 1280px; margin-left: auto; margin-right: auto; padding: 1.5rem; }
-    .header { margin-bottom: 2rem; }
-    .header-title { font-size: 2.25rem; font-weight: 700; color: #111827; }
-    .main-grid { display: flex; flex-wrap: wrap; gap: 2rem; }
-    .grid-col-1 { flex: 1 1 300px; }
-    .grid-col-2 { flex: 2 1 600px; }
-    .card { background-color: #ffffff; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-    .card-title { font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 1rem; }
-    .form-input, .form-select, .form-textarea { display: block; width: 100%; padding: 0.75rem 1rem; background-color: #F9FAFB; border: 1px solid #D1D5DB; border-radius: 0.5rem; }
-    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: 2px solid transparent; outline-offset: 2px; border-color: #3B82F6; box-shadow: 0 0 0 2px #BFDBFE; }
-    .form-checkbox { height: 1rem; width: 1rem; color: #EF4444; border-radius: 0.25rem; border-color: #D1D5DB; }
-    .form-label { margin-left: 0.5rem; display: block; font-size: 0.875rem; color: #B91C1C; font-weight: 500; }
-    .form-submit-btn { width: 100%; background-color: #2563EB; color: #ffffff; font-weight: 700; padding: 0.75rem 1rem; border-radius: 0.5rem; border: none; cursor: pointer; transition: background-color 0.2s; }
-    .form-submit-btn:hover { background-color: #1D4ED8; }
-    .form-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .location-btn { width: 100%; background-color: #10B981; color: #ffffff; font-weight: 500; padding: 0.6rem 1rem; border-radius: 0.5rem; border: none; cursor: pointer; transition: background-color 0.2s; text-align: center; }
-    .location-btn:hover { background-color: #059669; }
-    .flex-center { display: flex; align-items: center; }
-    .space-y-4 > * + * { margin-top: 1rem; }
-    .alert-banner { border-left-width: 4px; border-color: #EF4444; background-color: #FEE2E2; color: #B91C1C; padding: 1rem; margin-bottom: 1rem; border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem; }
-    .error-banner { border-left-width: 4px; border-color: #FBBF24; background-color: #FFFBEB; color: #92400E; padding: 1rem; margin-bottom: 1rem; border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem; }
-    .alert-title { font-weight: 700; }
-    .table-container { overflow-x: auto; }
-    .table { min-width: 100%; border-collapse: collapse; }
-    .table-head { background-color: #F9FAFB; }
-    .th { padding: 0.75rem 1.5rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; }
-    .tbody { background-color: #ffffff; }
-    .tr-clickable { cursor: pointer; }
-    .tr-clickable:hover { background-color: #F9FAFB; }
-    .tr-stuck { background-color: #FEF2F2; }
-    .td { padding: 1rem 1.5rem; white-space: nowrap; font-size: 0.875rem; color: #6B7280; border-top: 1px solid #E5E7EB; }
-    .td-main { color: #111827; font-weight: 500; }
-    .max-w-xs { max-width: 20rem; }
-    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
-    .modal-content { background-color: white; padding: 2rem; border-radius: 1rem; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-    .modal-title { font-size: 1.5rem; font-weight: 700; }
-    .modal-close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #9CA3AF; }
-    .timeline { border-left: 2px solid #E5E7EB; padding-left: 1.5rem; }
-    .timeline-item { position: relative; margin-bottom: 1.5rem; }
-    .timeline-dot { position: absolute; left: -2.05rem; top: 0.25rem; height: 0.75rem; width: 0.75rem; background-color: #9CA3AF; border-radius: 9999px; }
-    .timeline-item:first-child .timeline-dot { background-color: #3B82F6; }
-    .filter-controls { display: flex; gap: 1rem; margin-bottom: 1rem; }
-`;
-
 // --- Helper Components ---
+
 const AlertBanner = ({ alert }) => (
-  <div className="alert-banner" role="alert">
-    <p className="alert-title">Stuck Package Alert!</p>
-    <p>{alert.message}</p>
+  <div
+    className="border-l-4 border-red-500 bg-red-100 p-4 mb-4 rounded-r-lg"
+    role="alert"
+  >
+    <p className="font-bold text-red-800">Stuck Package Alert!</p>
+    <p className="text-red-800">{alert.message}</p>
   </div>
 );
 
@@ -103,23 +55,26 @@ const LocationDisplay = ({ lat, lon }) => {
 
 const PackageRow = ({ pkg, isStuck, onClick }) => {
   const lastSeen = new Date(pkg.received_at).toLocaleTimeString();
-  let rowClass = "tr-clickable";
-  if (isStuck) {
-    rowClass += " tr-stuck";
-  }
+  const rowClass = `cursor-pointer hover:bg-gray-50 ${
+    isStuck ? "bg-red-50" : ""
+  }`;
 
   return (
     <tr className={rowClass} onClick={onClick}>
-      <td className="td td-main">{pkg.package_id}</td>
-      <td className="td">{pkg.status}</td>
-      <td className="td">
+      <td className="p-4 px-6 whitespace-nowrap text-sm text-gray-500 border-t border-gray-200 font-medium text-gray-900">
+        {pkg.package_id}
+      </td>
+      <td className="p-4 px-6 whitespace-nowrap text-sm text-gray-500 border-t border-gray-200">{pkg.status}</td>
+      <td className="p-4 px-6 whitespace-nowrap text-sm text-gray-500 border-t border-gray-200">
         {pkg.eta ? new Date(pkg.eta).toLocaleString() : "N/A"}
       </td>
-      <td className="td">{lastSeen}</td>
-      <td className="td">
+      <td className="p-4 px-6 whitespace-nowrap text-sm text-gray-500 border-t border-gray-200">{lastSeen}</td>
+      <td className="p-4 px-6 whitespace-nowrap text-sm text-gray-500 border-t border-gray-200">
         <LocationDisplay lat={pkg.lat} lon={pkg.lon} />
       </td>
-      <td className="td max-w-xs truncate">{pkg.note || "N/A"}</td>
+      <td className="p-4 px-6 whitespace-nowrap text-sm text-gray-500 border-t border-gray-200 max-w-xs truncate">
+        {pkg.note || "N/A"}
+      </td>
     </tr>
   );
 };
@@ -139,6 +94,8 @@ const PackageCreator = () => {
   const [responseMessage, setResponseMessage] = useState("");
   const API_URL = "http://localhost:3001";
   const API_KEY = "1234567890abcdef1234567890abcdef";
+
+  const formElementClasses = "block w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -207,8 +164,10 @@ const PackageCreator = () => {
   };
 
   return (
-    <div className="card">
-      <h2 className="card-title">Package Control Panel</h2>
+    <div className="bg-white p-8 rounded-xl shadow-lg">
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">
+        Package Control Panel
+      </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           name="package_id"
@@ -216,13 +175,13 @@ const PackageCreator = () => {
           onChange={handleChange}
           placeholder="Package ID"
           required
-          className="form-input"
+          className={formElementClasses}
         />
         <select
           name="status"
           value={formData.status}
           onChange={handleChange}
-          className="form-select"
+          className={formElementClasses}
         >
           <option value="CREATED">CREATED</option>
           <option value="PICKED_UP">PICKED_UP</option>
@@ -232,7 +191,7 @@ const PackageCreator = () => {
           <option value="EXCEPTION">EXCEPTION</option>
           <option value="CANCELLED">CANCELLED</option>
         </select>
-        <div style={{ display: "flex", gap: "1rem" }}>
+        <div className="flex gap-4">
           <input
             name="lat"
             value={formData.lat}
@@ -240,7 +199,7 @@ const PackageCreator = () => {
             type="number"
             step="any"
             placeholder="Latitude"
-            className="form-input"
+            className={formElementClasses}
           />
           <input
             name="lon"
@@ -249,13 +208,13 @@ const PackageCreator = () => {
             type="number"
             step="any"
             placeholder="Longitude"
-            className="form-input"
+            className={formElementClasses}
           />
         </div>
         <button
           type="button"
           onClick={handleGetLocation}
-          className="location-btn"
+          className="w-full bg-emerald-500 text-white font-medium py-2.5 px-4 rounded-lg text-center transition-colors hover:bg-emerald-600"
         >
           Get Current Location
         </button>
@@ -265,40 +224,39 @@ const PackageCreator = () => {
           onChange={handleChange}
           type="datetime-local"
           placeholder="ETA (Optional)"
-          className="form-input"
+          className={formElementClasses}
         />
         <textarea
           name="note"
           value={formData.note}
           onChange={handleChange}
           placeholder="Note (optional)"
-          className="form-textarea"
+          className={formElementClasses}
         />
-        <div className="flex-center">
+        <div className="flex items-center">
           <input
             id="stuck-test"
             type="checkbox"
             checked={isStuckTest}
             onChange={(e) => setIsStuckTest(e.target.checked)}
-            className="form-checkbox"
+            className="h-4 w-4 text-red-600 border-gray-300 rounded"
           />
-          <label htmlFor="stuck-test" className="form-label">
-            Send as Stuck Package (Timestamp {">"} 30 min ago)
+          <label
+            htmlFor="stuck-test"
+            className="ml-2 block text-sm text-red-800 font-medium"
+          >
+            Send as Stuck Package (Timestamp &gt; 30 min ago)
           </label>
         </div>
-        <button type="submit" disabled={isLoading} className="form-submit-btn">
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           {isLoading ? "Sending..." : "Send Package Update"}
         </button>
         {responseMessage && (
-          <p
-            style={{
-              fontSize: "0.875rem",
-              textAlign: "center",
-              marginTop: "0.5rem",
-            }}
-          >
-            {responseMessage}
-          </p>
+          <p className="text-sm text-center mt-2">{responseMessage}</p>
         )}
       </form>
     </div>
@@ -309,45 +267,44 @@ const PackageCreator = () => {
 const TimelineModal = ({ history, onClose }) => {
   if (!history) return null;
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3 className="modal-title">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white p-8 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-2xl font-bold">
             Package History: {history[0]?.package_id}
           </h3>
-          <button onClick={onClose} className="modal-close-btn">
+          <button
+            onClick={onClose}
+            className="text-gray-400 text-2xl hover:text-gray-600"
+          >
             &times;
           </button>
         </div>
-        <div className="timeline">
-          {history.map((event) => (
-            <div key={event._id} className="timeline-item">
-              <div className="timeline-dot"></div>
-              <p style={{ fontWeight: "600", color: "#1F2937" }}>
-                {event.status}
-              </p>
-              <p style={{ fontSize: "0.875rem", color: "#6B7280" }}>
+        <div className="border-l-2 border-gray-200 pl-6">
+          {history.map((event, index) => (
+            <div key={event._id} className="relative mb-6">
+              <div
+                className={`absolute -left-[35px] top-1 h-3 w-3 rounded-full ${
+                  index === 0 ? "bg-blue-500" : "bg-gray-400"
+                }`}
+              ></div>
+              <p className="font-semibold text-gray-800">{event.status}</p>
+              <p className="text-sm text-gray-500">
                 {new Date(event.event_timestamp).toLocaleString()}
               </p>
               {event.lat && event.lon && (
-                <div
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "#4B5563",
-                    marginTop: "0.25rem",
-                  }}
-                >
+                <div className="text-sm text-gray-600 mt-1">
                   <LocationDisplay lat={event.lat} lon={event.lon} />
                 </div>
               )}
               {event.note && (
-                <p
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "#4B5563",
-                    marginTop: "0.25rem",
-                  }}
-                >
+                <p className="text-sm text-gray-600 mt-1">
                   Note: {event.note}
                 </p>
               )}
@@ -359,7 +316,7 @@ const TimelineModal = ({ history, onClose }) => {
   );
 };
 
-// Main App Component
+// --- Main App Component ---
 export default function App() {
   const [packages, setPackages] = useState([]);
   const [alerts, setAlerts] = useState([]);
@@ -371,7 +328,6 @@ export default function App() {
   const API_KEY = "1234567890abcdef1234567890abcdef";
 
   const fetchInitialData = useCallback(async () => {
-    // Clear previous errors on a new attempt
     setConnectionError(null);
     try {
       const [pkgResponse, alertResponse] = await Promise.all([
@@ -386,7 +342,6 @@ export default function App() {
       if (alertResponse.ok) setAlerts(await alertResponse.json());
     } catch (error) {
       console.error("Failed to fetch initial data:", error);
-      // Set a user-friendly error message
       setConnectionError(
         "Could not connect to the backend server. Please ensure it's running and accessible at http://localhost:3001."
       );
@@ -452,46 +407,48 @@ export default function App() {
   }, [packages, statusFilter, searchQuery]);
 
   const stuckPackageIds = new Set(alerts.map((a) => a.package_id));
+  const formElementClasses = "block w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500";
 
   return (
     <>
-      <style>{styles}</style>
       <div className="bg-gray-100 min-h-screen font-sans">
-        <div className="container">
-          <header className="header">
-            <h1 className="header-title">Aamira Courier Real-time Dashboard</h1>
+        <div className="container mx-auto p-6">
+          <header className="mb-8">
+            <h1 className="text-4xl font-bold text-gray-900">
+              Aamira Courier Real-time Dashboard
+            </h1>
           </header>
-          <div className="main-grid">
-            <div className="grid-col-1">
+          <div className="flex flex-col lg:flex-row lg:flex-wrap gap-8">
+            <div className="lg:flex-[1_1_400px]">
               <PackageCreator />
             </div>
-            <div className="grid-col-2">
-              <div className="card">
-                <h2 className="card-title">Live Package Feed</h2>
+            <div className="lg:flex-[2_1_600px]">
+              <div className="bg-white p-8 rounded-xl shadow-lg">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Live Package Feed
+                </h2>
 
-                {/* Connection Error Display */}
                 {connectionError && (
-                  <div className="error-banner">
-                    <p className="alert-title">Connection Error</p>
-                    <p>{connectionError}</p>
+                  <div className="border-l-4 border-amber-400 bg-amber-50 p-4 mb-4 rounded-r-lg">
+                    <p className="font-bold text-amber-800">
+                      Connection Error
+                    </p>
+                    <p className="text-amber-800">{connectionError}</p>
                   </div>
                 )}
-
-                {/* Search and Filter Controls */}
-                <div className="filter-controls">
+                
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
                   <input
                     type="text"
                     placeholder="Search by Package ID..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="form-input"
-                    style={{ flex: 2 }}
+                    className={`${formElementClasses} sm:w-2/3`}
                   />
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="form-select"
-                    style={{ flex: 1 }}
+                    className={`${formElementClasses} sm:w-1/3`}
                   >
                     <option value="ALL_ACTIVE">All Active</option>
                     <option value="CREATED">Created</option>
@@ -503,24 +460,25 @@ export default function App() {
                   </select>
                 </div>
 
-                <div style={{ marginBottom: "1rem" }}>
+                <div className="mb-4">
                   {alerts.map((alert) => (
                     <AlertBanner key={alert._id} alert={alert} />
                   ))}
                 </div>
-                <div className="table-container">
-                  <table className="table">
-                    <thead className="table-head">
+
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border-collapse">
+                    <thead className="bg-gray-50">
                       <tr>
-                        <th className="th">Package ID</th>
-                        <th className="th">Status</th>
-                        <th className="th">ETA</th>
-                        <th className="th">Last Seen</th>
-                        <th className="th">Place Name</th>
-                        <th className="th">Note</th>
+                        <th className="p-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                        <th className="p-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="p-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ETA</th>
+                        <th className="p-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Seen</th>
+                        <th className="p-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Place Name</th>
+                        <th className="p-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Note</th>
                       </tr>
                     </thead>
-                    <tbody className="tbody">
+                    <tbody className="bg-white">
                       {filteredPackages.length > 0 ? (
                         filteredPackages.map((pkg) => (
                           <PackageRow
@@ -534,11 +492,7 @@ export default function App() {
                         <tr>
                           <td
                             colSpan="6"
-                            style={{
-                              textAlign: "center",
-                              padding: "2rem",
-                              color: "#6B7280",
-                            }}
+                            className="text-center p-8 text-gray-500"
                           >
                             {connectionError
                               ? " "
